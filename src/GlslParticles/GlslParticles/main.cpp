@@ -36,7 +36,7 @@ static const char* vShader = "../../assets/shaders/particleEmitter.vert.glsl";
 static const char* fShader = "../../assets/shaders/particleEmitter.frag.glsl";
 
 const int particleCount = 1000;
-const float particleLifeTime = 0.5f;
+const float particleLifeTime = 1.0f;
 
 GLuint computeProgram;
 GLuint shaderProgram;
@@ -196,7 +196,7 @@ void generateBuffers() {
 	glBufferData(GL_SHADER_STORAGE_BUFFER, particleCount * sizeof(GLfloat), NULL, GL_STATIC_DRAW);
 	// Fill
 	resetLifeTimeSSBO();
-	// Bind buffer to target index 1
+	// Bind buffer to target index 2
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, lifeSSBO);
 }
 
