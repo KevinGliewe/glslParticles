@@ -319,7 +319,7 @@ int main()
 		glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "view"), 1, GL_FALSE, glm::value_ptr(view));
 		glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "projection") , 1, GL_FALSE, glm::value_ptr(projection));
 
-		glUniform1f(glGetUniformLocation(shaderProgram, "particle_size"), 0.02);
+		glUniform1f(glGetUniformLocation(shaderProgram, "particle_size"), 0.01);
 		
 		glGetError();
 
