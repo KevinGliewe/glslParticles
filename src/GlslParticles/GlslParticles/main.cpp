@@ -35,6 +35,9 @@ static const char* cShader = "../../assets/shaders/particleEmitter.cs.glsl";
 // Vertex Shader
 static const char* vShader = "../../assets/shaders/particleEmitter.vert.glsl";
 
+// Geometry Shader
+static const char* gShader = "../../assets/shaders/particleEmitter.geom.glsl";
+
 // Fragment Shader
 static const char* fShader = "../../assets/shaders/particleEmitter.frag.glsl";
 
@@ -84,12 +87,15 @@ void loadComputeShader() {
 
 void loadDrawShader() {
 	GLuint vertShader = glCreateShader(GL_VERTEX_SHADER);
+	GLuint geomShader = glCreateShader(GL_GEOMETRY_SHADER);
 	GLuint fragShader = glCreateShader(GL_FRAGMENT_SHADER);
 
 	// Read shaders
 	std::string vertShaderStr = GlHelper::readFile(vShader);
+	std::string geomShaderStr = GlHelper::readFile(gShader);
 	std::string fragShaderStr = GlHelper::readFile(fShader);
 	const char *vertShaderSrc = vertShaderStr.c_str();
+	const char *geomShaderSrc = geomShaderStr.c_str();
 	const char *fragShaderSrc = fragShaderStr.c_str();
 
 	GLint result = GL_FALSE;
@@ -101,6 +107,12 @@ void loadDrawShader() {
 	glCompileShader(vertShader);
 	GlHelper::printShaderLog(vertShader);
 
+	// Compile geometry shader
+	printf("Compiling geometry shader.\n");
+	glShaderSource(geomShader, 1, &geomShaderSrc, NULL);
+	glCompileShader(geomShader);
+	GlHelper::printShaderLog(geomShader);
+
 	// Compile fragment shader
 	printf("Compiling fragment shader.\n");
 	glShaderSource(fragShader, 1, &fragShaderSrc, NULL);
@@ -110,11 +122,13 @@ void loadDrawShader() {
 	printf("Linking program.\n");
 	shaderProgram = glCreateProgram();
 	glAttachShader(shaderProgram, vertShader);
+	glAttachShader(shaderProgram, geomShader);
 	glAttachShader(shaderProgram, fragShader);
 	glLinkProgram(shaderProgram);
 	GlHelper::printProgramLog(shaderProgram);
 
 	glDeleteShader(vertShader);
+	glDeleteShader(geomShader);
 	glDeleteShader(fragShader);
 }
 
@@ -304,6 +318,8 @@ int main()
 		glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "model"), 1, GL_FALSE, glm::value_ptr(model));
 		glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "view"), 1, GL_FALSE, glm::value_ptr(view));
 		glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "projection") , 1, GL_FALSE, glm::value_ptr(projection));
+
+		glUniform1f(glGetUniformLocation(shaderProgram, "particle_size"), 0.02);
 		
 		glGetError();
 
@@ -318,14 +334,10 @@ int main()
 		glPointSize(10);
 		glDrawArrays(GL_POINTS, 0, particleCount);
 
-		//glfwSwapBuffers(mainWindow.);
 		mainWindow.swapBuffers();
 	} //Check if the ESC key had been pressed or if the window had been closed
 	while (!mainWindow.getShouldClose());
-	//while (!glfwWindowShouldClose(window));
 
-	//Close OpenGL window and terminate GLFW
-	//glfwDestroyWindow(window);
 	//Finalize and clean up GLFW
 	glfwTerminate();
 

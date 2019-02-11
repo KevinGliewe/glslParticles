@@ -48,6 +48,7 @@ void main() {
         v += vec4(g * dt, 1.0);
         p += v * dt;
 
+        // Sphere collision
         vec3 s_p = p.xyz - spherePos;
         if(length(s_p) <= sphereRadius) {
             vec3 normal = normalize(s_p);
