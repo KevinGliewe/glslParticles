@@ -17,6 +17,9 @@
 #include "GlHelper.h"
 #include "Camera.h"
 
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
+
 
 
 const float toRadians = 3.14159265f / 180.0f;
@@ -35,8 +38,11 @@ static const char* vShader = "../../assets/shaders/particleEmitter.vert.glsl";
 // Fragment Shader
 static const char* fShader = "../../assets/shaders/particleEmitter.frag.glsl";
 
+// Texture File
+static const char* textureFile = "../../assets/Textures/fish.png";
+
 const int particleCount = 1000;
-const float particleLifeTime = 1.0f;
+const float particleLifeTime = 0.8f;
 
 GLuint computeProgram;
 GLuint shaderProgram;
@@ -46,8 +52,10 @@ GLuint posSSBO;
 GLuint velSSBO;
 GLuint lifeSSBO;
 
+GLuint textureID;
+
 Window mainWindow;
-Camera camera = Camera(glm::vec3(0.0f, 0.0f, 3.0f), glm::vec3(0.0f, 1.0f, 0.0f), -90.0f, 0.0f, 5.0f, 0.5f);
+Camera camera = Camera(glm::vec3(-1.0f, 0.0f, 1.0f), glm::vec3(0.0f, 1.0f, 0.0f), -90.0f, 0.0f, 5.0f, 0.5f);
 
 void loadComputeShader() {
 	GLuint computeShader = glCreateShader(GL_COMPUTE_SHADER);
@@ -108,6 +116,36 @@ void loadDrawShader() {
 
 	glDeleteShader(vertShader);
 	glDeleteShader(fragShader);
+}
+
+void loadTexture() {
+	int width = 0;
+	int height = 0;
+	int bitDepth = 0;
+
+	unsigned char *textureData = stbi_load(textureFile, &width, &height, &bitDepth, 0);
+	if (!textureData)
+	{
+		printf("Failed to find: %s\n", textureFile);
+		return;
+	}
+
+
+	glGenTextures(1, &textureID);
+	glBindTexture(GL_TEXTURE_2D, textureID);
+
+
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, textureData);
+	glGenerateMipmap(GL_TEXTURE_2D);
+
+	glBindTexture(GL_TEXTURE_2D, 0);
+
+	stbi_image_free(textureData);
 }
 
 void resetPositionSSBO() {
@@ -211,6 +249,7 @@ int main()
 
 	loadComputeShader();
 	loadDrawShader();
+	loadTexture();
 
 	generateBuffers();
 
@@ -260,11 +299,15 @@ int main()
 		// Draw Step
 		glUseProgram(shaderProgram);
 
+		glDisable(GL_DEPTH_TEST);
+
 		glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "model"), 1, GL_FALSE, glm::value_ptr(model));
 		glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "view"), 1, GL_FALSE, glm::value_ptr(view));
 		glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "projection") , 1, GL_FALSE, glm::value_ptr(projection));
 		
 		glGetError();
+
+		glBindTexture(GL_TEXTURE_2D, textureID);
 
 		// Bind Pos Buffer
 		glBindBuffer(GL_ARRAY_BUFFER, posSSBO);
@@ -272,7 +315,7 @@ int main()
 		glVertexAttribPointer(posLocation, 4, GL_FLOAT, GL_FALSE, 0, 0);
 		glEnableVertexAttribArray(posLocation);
 
-		glPointSize(5);
+		glPointSize(10);
 		glDrawArrays(GL_POINTS, 0, particleCount);
 
 		//glfwSwapBuffers(mainWindow.);

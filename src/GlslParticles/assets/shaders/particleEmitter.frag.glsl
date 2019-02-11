@@ -1,7 +1,10 @@
 #version 430
 
+uniform sampler2D tex1;
+
 out vec4 colour;
 
 void main() {
-  colour = vec4(1.0, 0.5, 1.0, 1.0);
+  colour = texture(tex1, gl_PointCoord);
+  colour.w = colour.w / 2.0;
 }
