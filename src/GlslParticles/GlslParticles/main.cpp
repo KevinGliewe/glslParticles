@@ -5,6 +5,7 @@
 #include <cmath>
 #include <vector>
 #include <ctime>
+#include <limits>
 
 #include <GL\glew.h>
 #include <GLFW\glfw3.h>
@@ -44,7 +45,7 @@ static const char* fShader = "../../assets/shaders/particleEmitter.frag.glsl";
 // Texture File
 static const char* textureFile = "../../assets/Textures/fish.png";
 
-const int particleCount = 1000;
+const int particleCount = 20000;
 const float particleLifeTime = 0.8f;
 
 GLuint computeProgram;
@@ -67,9 +68,6 @@ void loadComputeShader() {
 	std::string computeShaderStr = GlHelper::readFile(cShader);
 	const char *computeShaderSrc = computeShaderStr.c_str();
 
-	GLint result = GL_FALSE;
-	int logLength;
-
 	printf("Compiling compute shader.\n");
 	glShaderSource(computeShader, 1, &computeShaderSrc, NULL);
 	glCompileShader(computeShader);
@@ -90,16 +88,13 @@ void loadDrawShader() {
 	GLuint geomShader = glCreateShader(GL_GEOMETRY_SHADER);
 	GLuint fragShader = glCreateShader(GL_FRAGMENT_SHADER);
 
-	// Read shaders
+	// Read shaders from files
 	std::string vertShaderStr = GlHelper::readFile(vShader);
 	std::string geomShaderStr = GlHelper::readFile(gShader);
 	std::string fragShaderStr = GlHelper::readFile(fShader);
 	const char *vertShaderSrc = vertShaderStr.c_str();
 	const char *geomShaderSrc = geomShaderStr.c_str();
 	const char *fragShaderSrc = fragShaderStr.c_str();
-
-	GLint result = GL_FALSE;
-	int logLength;
 
 	// Compile vertex shader
 	printf("Compiling vertex shader.\n");
@@ -127,6 +122,7 @@ void loadDrawShader() {
 	glLinkProgram(shaderProgram);
 	GlHelper::printProgramLog(shaderProgram);
 
+	// Cleanup
 	glDeleteShader(vertShader);
 	glDeleteShader(geomShader);
 	glDeleteShader(fragShader);
@@ -163,11 +159,13 @@ void loadTexture() {
 }
 
 void resetPositionSSBO() {
+	// Place particles far away until they respawn for the first time
+	float fMax = std::numeric_limits<float>::max();
 	glm::vec4* pos = (glm::vec4*) glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, particleCount * sizeof(glm::vec4), GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
 	for (int i = 0; i < particleCount; i++) {
-		pos[i].x = -999999.0f;
-		pos[i].y = -999999.0f;
-		pos[i].z = -999999.0f;
+		pos[i].x = fMax;
+		pos[i].y = fMax;
+		pos[i].z = fMax;
 		pos[i].w = 1.0f;
 	}
 	glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
@@ -185,6 +183,7 @@ void resetVelocitySSBO() {
 }
 
 void resetLifeTimeSSBO() {
+	// Init the lifetime with a random value between 0 and particleLifeTime, so we get an constant stream respawing.
 	GLfloat* life = (GLfloat*) glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, particleCount * sizeof(GLfloat), GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
 	for (int i = 0; i < particleCount; i++) {
 		life[i] = GlHelper::randrange(0.0f, particleLifeTime);
@@ -256,6 +255,7 @@ void generateBuffers() {
 
 int main() 
 {
+	// Initialize rand seed
 	std::srand(std::time(nullptr));
 
 	mainWindow = Window(800, 600);
@@ -267,7 +267,7 @@ int main()
 
 	generateBuffers();
 
-	
+	// MVP
 	glm::mat4 model;
 	model = glm::translate(model, glm::vec3(-1.0f, 0.0f, 0));
 	glm::mat4 view = camera.calculateViewMatrix();
@@ -292,10 +292,13 @@ int main()
 		camera.mouseControl(mainWindow.getXChange(), mainWindow.getYChange());
 		view = camera.calculateViewMatrix();
 
-		// Physics Step
 
+		// ######################################################
+		// #                 Physics Step                       #
+		// ######################################################
 		glUseProgram(computeProgram);
 
+		// Set uniform variables
 		glUniform1f(glGetUniformLocation(computeProgram, "dt"), deltaTime);
 		glUniform3f(glGetUniformLocation(computeProgram, "g"), 0, -9.81f, 0);
 		glUniform3f(glGetUniformLocation(computeProgram, "velSpawn"), 0, 1.0f, 0);
@@ -310,19 +313,21 @@ int main()
 		// Set memory barrier on per vertex base to make sure we get what was written by the compute shaders
 		glMemoryBarrier(GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT);
 
-		// Draw Step
+		// ######################################################
+		// #                   Draw Step                        #
+		// ######################################################
 		glUseProgram(shaderProgram);
 
 		glDisable(GL_DEPTH_TEST);
 
+		// Set uniform variables
 		glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "model"), 1, GL_FALSE, glm::value_ptr(model));
 		glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "view"), 1, GL_FALSE, glm::value_ptr(view));
 		glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "projection") , 1, GL_FALSE, glm::value_ptr(projection));
 
 		glUniform1f(glGetUniformLocation(shaderProgram, "particle_size"), 0.01);
-		
-		glGetError();
 
+		// Bind fish texture for billboarding
 		glBindTexture(GL_TEXTURE_2D, textureID);
 
 		// Bind Pos Buffer
@@ -331,10 +336,11 @@ int main()
 		glVertexAttribPointer(posLocation, 4, GL_FLOAT, GL_FALSE, 0, 0);
 		glEnableVertexAttribArray(posLocation);
 
-		glPointSize(10);
+		// Draw the Particles
 		glDrawArrays(GL_POINTS, 0, particleCount);
 
 		mainWindow.swapBuffers();
+		mainWindow.update();
 	} //Check if the ESC key had been pressed or if the window had been closed
 	while (!mainWindow.getShouldClose());
 
