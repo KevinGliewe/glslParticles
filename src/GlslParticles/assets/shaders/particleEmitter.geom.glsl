@@ -20,22 +20,22 @@ void main() {
     
     vec3 va = center - (right + up);
     gl_Position = projection * vec4(va, 1.0);
-    Vertex_UV = vec2(0.0, 0.0);
+    Vertex_UV = vec2(0.0, 1.0);
     EmitVertex();  
     
     vec3 vb = center - (right - up);
     gl_Position = projection * vec4(vb, 1.0);
-    Vertex_UV = vec2(0.0, 1.0);
+    Vertex_UV = vec2(0.0, 0.0);
     EmitVertex();  
 
     vec3 vd = center + (right - up);
     gl_Position = projection * vec4(vd, 1.0);
-    Vertex_UV = vec2(1.0, 0.0);
+    Vertex_UV = vec2(1.0, 1.0);
     EmitVertex();  
 
     vec3 vc = center + (right + up);
     gl_Position = projection * vec4(vc, 1.0);
-    Vertex_UV = vec2(1.0, 1.0);
+    Vertex_UV = vec2(1.0, 0.0);
     EmitVertex();
 
     EndPrimitive(); 
