@@ -22,6 +22,7 @@ uniform float randseed = 0.0;
 
 const float sphereRadius = 0.2;
 const vec3 spherePos = vec3(0.1, -0.3, 0);
+const float sphereBouncyness = 0.3;
 
 // https://stackoverflow.com/questions/12964279/whats-the-origin-of-this-glsl-rand-one-liner
 float rand(vec2 co){
@@ -52,7 +53,7 @@ void main() {
         vec3 s_p = p.xyz - spherePos;
         if(length(s_p) <= sphereRadius) {
             vec3 normal = normalize(s_p);
-            v = vec4(reflect(v.xyz, normal) * 0.1, 1.0);
+            v = vec4(reflect(v.xyz, normal) * sphereBouncyness, 1.0);
             p = vec4(normal * (sphereRadius + 0.001) + spherePos, 1.0);
         }
     }
