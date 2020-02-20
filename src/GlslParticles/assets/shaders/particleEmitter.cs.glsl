@@ -30,8 +30,9 @@ uniform float randseed = 0.0;
 
 // Collision shape sphere
 const float sphereRadius = 0.2;
-const vec3 spherePos = vec3(0.1, -0.3, 0);
+const vec3  spherePos = vec3(0.1, -0.3, 0);
 const float sphereBouncyness = 0.3;
+const uint  iterations = 10;
 
 // https://stackoverflow.com/questions/12964279/whats-the-origin-of-this-glsl-rand-one-liner
 float rand(vec2 co){
@@ -56,15 +57,19 @@ void main() {
         float x_offs = rand(vec2(randseed, float(idx))) - 0.5;
         // Random Y Axis offset
         float y_offs = rand(vec2(randseed, float(idx + 1))) - 0.5;
+        float z_offs = rand(vec2(randseed, float(idx + 2))) - 0.5;
 
-        p = vec4(0, 0, 0, 1.0);
-        v = vec4(velSpawn, 1.0) + vec4(x_offs, 0 ,y_offs , 0);
-    } else {
+        p = vec4(0, 0, 0, 1.0) + vec4(x_offs, y_offs, z_offs, 0) * 0.001;
+        v = vec4(velSpawn, 1.0) + vec4(x_offs, y_offs, z_offs, 0);
+    }
+    
+    float ddt = dt / iterations;
+    for(uint i = 0; i < iterations; i++) {
         // Gravity
-        v += vec4(g * dt, 1.0);
+        v += vec4(g * ddt, 1.0);
         
         // Move Particle according to velocity
-        p += v * dt;
+        p += v * ddt;
 
         // Sphere collision
         vec3 s_p = p.xyz - spherePos; // spere -> particle
@@ -77,6 +82,7 @@ void main() {
             p = vec4(normal * (sphereRadius + 0.001) + spherePos, 1.0);
         }
     }
+    
 
     vPos[idx] = p;
     vVel[idx] = v;
